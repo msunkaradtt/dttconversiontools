@@ -29,7 +29,7 @@ export const ToastifyProvider = ({ children }) => {
         dismissAllToasts,
     }}>
     {children}
-    <ToastContainer position="top-right" autoClose={5000} />
+    <ToastContainer position="top-center" autoClose={5000} />
     </ToastifyContext.Provider>);
 };
 

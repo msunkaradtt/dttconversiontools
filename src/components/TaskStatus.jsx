@@ -14,7 +14,7 @@ const TaskStatus = (props) => {
 
     const checkTaskStatus = async () => {
         try {
-            const endpoint = `http://18.153.140.53:8000/convert/activetasks/${snap.conversion_srv_res.task_id}`
+            const endpoint = `https://dttsrv.msunkara.de/convert/activetasks/${snap.conversion_srv_res.task_id}`
             const response = await fetch(endpoint, {
                 method: "GET",
             })
@@ -23,25 +23,32 @@ const TaskStatus = (props) => {
             const stateSrv = data.state
 
             // Handle different task statuses
-            if (stateSrv === "SUCCESS") {
+            if(stateSrv === "PENDING") {
+                state.isPending = true
+            }
+            else if (stateSrv === "SUCCESS") {
                 notifier.notifySuccess("Task completed successfully!")
                 downloadFile(data.result)
                 state.conversion_srv_res = {}
                 state.isChecking = false
-            } else if (stateSrv === "FAILURE") {
+                state.isPending = false
+            }
+            else if (stateSrv === "FAILURE") {
                 notifier.notifyError("Task failed!")
                 conversion_srv_res = {}
                 state.isChecking = false
+                state.isPending = false
             }
         } catch (error) {
             notifier.notifyError("Error checking task status")
             state.isChecking = false
+            state.isPending = false
         }
     }
 
     const downloadFile = async (fileName) => {
         try {
-            let endpoint = `http://18.153.140.53:8000/convert/step2gltfDownload/${fileName}`
+            let endpoint = `https://dttsrv.msunkara.de/convert/step2gltfDownload/${fileName}`
             let response = await fetch(endpoint, {
                 method: "GET",
             })
@@ -57,14 +64,6 @@ const TaskStatus = (props) => {
             link.parentNode.removeChild(link)
 
             notifier.notifyInfo(`${fileName} file downloaded successfully.`)
-
-            endpoint = "http://18.153.140.53:8000/convert/gettotalfiles"
-            response = await fetch(endpoint, {
-                method: "GET",
-            })
-
-            data = await response.json()
-            state.totalFiles = data.converted_files
         } catch (error) {
             notifier.notifyError(`Error downloading the file with following: ${error}`)
             return

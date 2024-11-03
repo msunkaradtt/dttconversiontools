@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { FileDrop, Footer, TaskStatus, Nav } from './components'
+import { FileDrop, Footer, TaskStatus, Nav, Notice } from './components'
 
 import { useToastify } from "./providers"
 
@@ -16,23 +16,6 @@ function App() {
 
   const shouldUpdate = snap.conversion_srv_res.status === "Submitted"
 
-  useMemo(async () => {
-    if(!snap.isTotalUpdated){
-      const endpoint = "http://18.153.140.53:8000/convert/gettotalfiles"
-      const response = await fetch(endpoint, {
-        method: "GET",
-      })
-
-      const data = await response.json()
-      if(!data){
-        notifier.notifyError("Failed to get total number of files from server.")
-        return
-      }
-      state.totalFiles = data.converted_files
-      state.isTotalUpdated = true
-    }
-  }, [])
-
   const onDrop = useCallback(async (acceptedFiles) => {
     if(acceptedFiles.length > 1){
       notifier.notifyError("Currently only one file per conversion is accepted!")
@@ -40,14 +23,15 @@ function App() {
     }
 
     const inFile = acceptedFiles[0]
-    const fileSize = Math.round((inFile.size / 1024))
+    const kb = Math.round((inFile.size / 1024))
+    const fileSizeInMB = Math.round((kb / 1024))
 
-    if(fileSize >= 4096) {
-      notifier.notifyError("Max supported file size is 4mb. Please select a smaller file.")
+    if(fileSizeInMB >= 20) {
+      notifier.notifyError("Max supported file size is 20mb. Please select a smaller file.")
       return
     }
 
-    const fileExtension = inFile.path?.split('.').pop() === 'step'
+    const fileExtension = inFile.path?.split('.').pop() === 'step' || 'STEP'
     if(!fileExtension){
       notifier.notifyError("Please upload only STEP files for conversion.")
       return
@@ -57,7 +41,7 @@ function App() {
     formData.append("input_step_file", inFile)
 
     try {
-      const endpoint = "http://18.153.140.53:8000/convert/step2gltf/"
+      const endpoint = "https://dttsrv.msunkara.de/convert/step2gltf/"
 
       await fetch(endpoint, {
         method: "POST",
@@ -81,11 +65,14 @@ function App() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-zinc-300">
       <Nav/>
+      <Notice />
       <main className="flex flex-col items-center justify-center flex-1">
         {shouldUpdate && <TaskStatus />}
         <FileDrop onDrop={onDrop} />
         <div className='flex flex-col items-center justify-center flex-1'>
-          <p className='underline pointer-events-none font-bold text-sm'>Total files converted: <span className='font-bold text-emerald-800'>{snap.totalFiles}</span></p>
+          {snap.isPending ?
+          <p className='pointer-events-none font-bold text-sm'>Task Status: <span className='font-bold text-emerald-800'>"Get your 🍵 and wait for the magic to happen!"</span></p> :
+          <></>}
         </div>
       </main>
       <Footer />
